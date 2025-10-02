@@ -31,9 +31,11 @@ knitr::opts_chunk$set(
   comment = "#>",
   echo = FALSE,
   warning = FALSE,
-  message = FALSE
+  message = FALSE,
+  fig.pos = "H"
 )
 include_solutions = TRUE
+
 ```
 
 ```{r setup2, include=FALSE, tidy=TRUE}
@@ -61,6 +63,7 @@ The first part consist of reproducing the analysis presented in `refining-your w
 
 df = palmerpenguins::penguins
 kable(head(df))
+
 ```
 
 ## Exploratory data analysis
@@ -98,7 +101,10 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
+wrap_plots(plots, 
+           ncol = 2, 
+           guides = "collect"
+           ) & theme(legend.position = "top")
   
 ```
 
@@ -130,7 +136,9 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
+wrap_plots(plots, 
+           ncol = 2, 
+           guides = "collect") & theme(legend.position = "top")
 
 ```
 
@@ -162,7 +170,11 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
+wrap_plots(plots, 
+           ncol = 2, 
+           guides = "collect"
+           ) & theme(legend.position = "top")
+
 ```
 
 Finally, let us see if there are changes of the variables through time grouping with the years. In @fig-4 we can observe the distributions from 2007 to 2009. Unlike previous plots, we don't see dramatic differences in the distributions by year.
@@ -171,7 +183,7 @@ Finally, let us see if there are changes of the variables through time grouping 
 #| label: fig-4
 #| fig-cap: "Bill, flipper, and mass characteristics by year"
 
-# FIgure 4 plotting
+# Figure 4 plotting
 
 plot_var = function(v){
   ggplot(df,
@@ -193,7 +205,11 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
+wrap_plots(plots, 
+           ncol = 2, 
+           guides = "collect"
+           ) & theme(legend.position = "top")
+
 ```
 
 ## Relationships
@@ -207,12 +223,13 @@ We will now check if there are interesting relationships between the variables, 
 # Figure 5 plotting
 
 ggpairs(df |> 
-select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
-aes(color = species, alpha = 0.5),
-columns = 2:5) +
-    theme_minimal(base_size = 12) +
-    theme(plot.title = element_text(face = "bold", hjust = 0),
-          panel.grid.minor = element_blank())
+          select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
+        aes(color = species, alpha = 0.5),
+        columns = 2:5) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0),
+        panel.grid.minor = element_blank())
+
 ```
 
 Turning to sex, in @fig-6 we can now actually see the whole story of the multimodal distributions we saw earlier. There are clear clusters on the different characteristics, given by the species. For each cluster, we can see a clear differentiation between male and female characteristics. Thus, males and females are very distinguishable, but the species mask this fact. It is worth nothing that, even though correlations are negative by sex for some variables, the actual relationships are clearly positive. The negative correlations are drawn more by the cumulus observed in the species groupings, generating apparent "negatively sloped" relations. See, for instance, bill depth versus flipper length.
@@ -224,12 +241,17 @@ Turning to sex, in @fig-6 we can now actually see the whole story of the multimo
 # Figure 6 plotting
 
 ggpairs(df |> 
-select(sex, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
-aes(color = sex, alpha = 0.5),
-columns = 2:5) +
-    theme_minimal(base_size = 12) +
-    theme(plot.title = element_text(face = "bold", hjust = 0),
-          panel.grid.minor = element_blank())
+          select(sex, 
+                 bill_length_mm, 
+                 bill_depth_mm, 
+                 flipper_length_mm, 
+                 body_mass_g),
+        aes(color = sex, alpha = 0.5),
+        columns = 2:5) +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0),
+        panel.grid.minor = element_blank())
+
 ```
 
 # Analysis of `datasets::ChickWeight` dataset
@@ -240,10 +262,11 @@ The second part consist of making an analysis similar to the previous one but fo
 #| label: tbl-chicks
 #| tbl-cap: "Example rows of the Chicks dataset."
 
-# Table 2 = 
+# Table 2
 
 df = datasets::ChickWeight
 kable(head(df))
+
 ```
 
 ## Exploratory data analysis
@@ -279,7 +302,10 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 1, guides = "collect") & theme(legend.position = "top")
+wrap_plots(plots, 
+           ncol = 1, 
+           guides = "collect"
+           ) & theme(legend.position = "top")
   
 ```
 
@@ -289,7 +315,7 @@ Now, let us analyze differences by time. @fig-2 shows the same plot as before by
 #| label: fig-8
 #| fig-cap: "Weight by time"
 
-# Figure 2 plotting
+# Figure 8 plotting
 
 plot_var = function(v){
   ggplot(df |> 
@@ -312,8 +338,8 @@ plot_var = function(v){
 }
 
 plots = map(vars, plot_var)
-wrap_plots(plots, ncol = 1, guides = "collect") & theme(legend.position = "top")
-
+wrap_plots(plots, ncol = 1, guides = "collect"
+) & theme(legend.position = "top")
 
 ```
 
@@ -325,6 +351,8 @@ Let us know analyze potential relationships between the variables. Given the pre
 #| label: fig-9
 #| fig-cap: ""
 
+# Figure 9 plotting
+
 df |> 
   ggplot(aes(x = Time,
              y = weight,
@@ -335,6 +363,12 @@ df |>
   theme_minimal(base_size = 12) +
     theme(plot.title = element_text(face = "bold", hjust = 0),
           panel.grid.minor = element_blank())
+
+```
+
+# Full code
+
+```{r ref.label=knitr::all_labels(), echo = T, eval = F}
 ```
 
 # References
