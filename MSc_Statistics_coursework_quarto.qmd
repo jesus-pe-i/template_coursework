@@ -1,7 +1,7 @@
 ---
-title: "Coursework Template"
+title: "Assignment 1"
 subtitle: 'MSc in Statistics 2025/26, Imperial College London'
-author: "Andrew Duncan, Oliver Ratmann"
+author: "Jesus Antonio Pinera Esquivel, 06053484"
 format:
   html:
     toc: true
@@ -15,7 +15,7 @@ bibliography: "MSc_Statistics_coursework_template_quarto.bib"
 
 <style type="text/css">
 h1{
-  font-size: 24pt;
+  font-size: 24pt
 }
 h2{
   font-size: 18pt;
@@ -28,149 +28,317 @@ body{
 ```{r setup, include = FALSE, tidy=TRUE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
 )
-include_solutions <- TRUE
+include_solutions = TRUE
 ```
+
 ```{r setup2, include=FALSE, tidy=TRUE}
 require(rmarkdown)
 require(knitr)
 require(kableExtra)
+library(ggplot2)
+library(purrr)
+library(patchwork)
+library(GGally)
+library(dplyr)
 # Put any library imports and other preamble here.
 ```
 
-This Rmarkdown document is intended to provide a basic template that you may use throughout the course, and to introduce you to basic functionality of the open-source bookdown R package for writing Rmarkdown documents [@xie2016bookdown].
+This document is part of the assignments for the Data Science Course at Imperial College London for the MSc in Statistics.
 
-Please note:
+# Analysis of `palmenr::penguins` dataset
 
-- Rmarkdown syntax for the title and document style;
-- bookdown syntax to label and reference equations;
-- bookdown syntax to referencing literate and provide a bib file;
-- kable syntax to build clean and clear tables that can be referenced;
-- Rmarkdown inline functions to collect and print all code used.
+The first part consist of reproducing the analysis presented in `refining-your workflows.qmd` based on the dataset `penguins`, first published by @kristen2014ecological. Below is an example of the top rows of the Palmer penguin dataset.
 
-# Sampling from the Cauchy distribution
+```{r}
+#| label: tbl-palmer
+#| tbl-cap: "Example rows of the Palmer penguin dataset."
 
-In this question we seek to generate samples from the standard Cauchy distribution, with pdf given by
-\begin{equation}
-  p(x) = \frac{1}{\pi (1 + x^2)}, \quad x \in \mathbb{R}.
-  (\#eq:1)
-\end{equation}
-The cdf associated with \@ref(eq:1) is given by
-\begin{equation}
-  F(x) = \frac{1}{\pi}\arctan(x) + \frac{1}{2}.
-  (\#eq:2)
-\end{equation}
 
-**Part a.**  We apply the inversion method as described by @graham2013stochastic. We first compute the generalised inverse of the cdf \@ref(eq:2).  To this end, let $y\in [0,1]$, then
+df = palmerpenguins::penguins
+kable(head(df))
+```
 
-\begin{align}
-    y &= F(x), \quad \iff (\#eq:3a) \\
-    y &= \frac{1}{\pi}\arctan(x) + \frac{1}{2} \quad \iff \\
-    y-\frac{1}{2}  &= \frac{1}{\pi}\arctan(x)  \quad \iff \\
-    \pi\left(y-\frac{1}{2}\right)  &= \arctan(x)  \quad \iff \\
-    x &= \tan\left(\pi\left(y-\frac{1}{2}\right)\right). 
-\end{align}
+## Exploratory data analysis
 
-By the inversion method [@graham2013stochastic], if $Y \sim U[0,1]$, then 
+Let us first start with some EDA. First, let us analyze how the numeric variables behave relative to the species. This is, if there are significant differences observed in bill and flipper characteristics for different species. As we observe in @fig-1, there are significant differences between species. For instance, Adelies have consistently shorter bills than Chinstraps and Gentoos. On the other hand, Gentoos differentiate from the other two species in the remaining characteristics: they have smaller bill depth, longer flippers, and more mass.
 
-\begin{equation}
-  X = \tan\left(\pi\left(Y-\frac{1}{2}\right)\right),
-  (\#eq:4)
-\end{equation}
+```{r}
+#| label: fig-1
+#| fig-cap: "Bill, flipper and mass characteristics by species"
 
-```{r, echo=FALSE}
+# Figure 1 plotting
 
-### Question 1a
+vars = c("bill_length_mm", 
+          "bill_depth_mm",
+          "flipper_length_mm",
+          "body_mass_g")
 
-generate_cauchy_samples <- function(n) {
-  # Generate 'n' uniform random numbers between 0 and 1
-  u <- runif(n)
+plot_var = function(v){
+  ggplot(df,
+         aes(x = .data[[v]], 
+             fill = species, 
+             color = species)) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
   
-  # Apply the inverse CDF formula to get Cauchy samples
-  samples <- tan(pi * (u - 0.5))  
-  return(samples)
+```
+
+Now, let us analyze differences by sex. @fig-2 shows the same plot as before. First, note that, unlike the species, the sex was not recorder for many penguins. For the observations we do have, we can observe that bill lenth and depth, and body mass, are larger for male penguins. There is, however, an apparent bimodal distribution by sex. These, combined with the missing values, might be due to differences in species rather than sex.
+
+```{r}
+#| label: fig-2
+#| fig-cap: "Bill, flipper and mass characteristics by sex"
+
+# Figure 2 plotting
+
+plot_var = function(v){
+  ggplot(df,
+         aes(x = .data[[v]], 
+             fill = sex, 
+             color = sex)) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
 }
 
-num_samples = 1000
-
-# Generate samples from the standard Cauchy distribution
-cauchy_samples <- generate_cauchy_samples(num_samples)
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
 
 ```
 
+Next, let us analyze the characteristics by the island. Again, we see significant differences. However, this might be due to the fact that species inhabit certain islands in particular. This would be expected, as penguins adapt to their habitat and thus generate different species characteristics.
 
-**Part b.**   The empirical cdf based on $N$ samples $x_1, \ldots, x_N$ is defined to be
-              $$
-                \widehat{F}(t) = \frac{1}{N}\sum_{i = 1}^N \mathbf{1}[x_i \leq t], \quad x\in \mathbb{t}.
-              $$
-To generate the empirical cdf in R, we perform the following steps:
-            
-a. Generate $N$ samples from the distribution using the inversion method, as detailed in the previous question.  
-b. Sort the samples in ascending order $x_1 \leq x_2 \leq x_3 \leq \ldots \leq x_N$.
-c. The empirical CDF at value $x_i$ is given by $i/N$.  
+```{r}
+#| label: fig-3
+#| fig-cap: "Bill, flipper, and mass characteristics by island"
 
+# Figure 3 plotting
 
-In the following figure we plot the empirical cdf based on 1000 samples (black line), and compare against the analytical cdf (red line).  
-
-```{r echo=FALSE}
-
-### Question 1b
-
-# Sort the samples in ascending order
-sorted_samples <- sort(cauchy_samples)
-
-# Calculate the cumulative probabilities for each sample
-cumulative_probs <- (1:num_samples) / num_samples
-
-x_values <- seq(-100, 100,  length.out = 1000)
-cdf_values <- pcauchy(x_values)
-
-# Plot the empirical CDF
-plot(sorted_samples, 
-     cumulative_probs, 
-     type = "s", 
-     xlab = "x", 
-     ylab = "Empirical CDF", 
-     main = "Empirical CDF of Standard Cauchy Distribution", 
-     lwd = 2, lty = 1, xlim = c(-100,100))
-lines(x_values, cdf_values, type = "l", 
-      xlab = "x", ylab = "CDF", main = "CDF of Standard Cauchy Distribution", 
-      col = 'red', lty = 2)
-```
-
-**Part c.**  We shall use the samples to compute the empirical cdf for the values $x = 0.5, 1, 10$.  
-
-```{r echo=FALSE}
-
-### Question 1c
-
-calculate_ecdf <- function(x) {
-    return(sum(sorted_samples <= x)/num_samples)
+plot_var = function(v){
+  ggplot(df,
+         aes(x = .data[[v]], 
+             fill = island, 
+             color = island)) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
 }
 
-df <- data.frame(x = c(0.5, 1.0, 10.0), 
-                ecdf = c(calculate_ecdf(0.5), 
-                         calculate_ecdf(1.0), 
-                         calculate_ecdf(10.0))
-                )
-kbl(df,
-    caption = 'Empirical CDF', 
-    label = 'ecdf',
-    digits = 2) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
-    font_size = 12)
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
 ```
 
+Finally, let us see if there are changes of the variables through time grouping with the years. In @fig-4 we can observe the distributions from 2007 to 2009. Unlike previous plots, we don't see dramatic differences in the distributions by year.
 
-# Code appendix
+```{r}
+#| label: fig-4
+#| fig-cap: "Bill, flipper, and mass characteristics by year"
 
-Rather than re-paste all the code to the appendix, here is a trick which makes the markdown file output all the code (without) execution in the appendix, without any duplication.
+# FIgure 4 plotting
 
-Please keep in mind to format the code so that the entire code is clearly visible and does not run into the margins of the pdf version.  
+plot_var = function(v){
+  ggplot(df,
+         aes(x = .data[[v]], 
+             fill = factor(year), 
+             color = factor(year))) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
 
-```{r ref.label=knitr::all_labels(), echo = T, eval = F}
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 2, guides = "collect") & theme(legend.position = "top")
+```
+
+## Relationships
+
+We will now check if there are interesting relationships between the variables, along groupings. @fig-5 shows scatterplots for the different variables, along calculated (Pearson) correlations, coloring by species. We can see clear positive relationships between the different variables, particularly between flipper length and body mass. Note, however, that the relationship without the grouping is negative for some pairs, whereas when grouping it turns positive. Thus, we have a great example of Simpson's paradox. It is also noteworthy to observe that some scatters are clearly distinguishable from the others, like Gentoo's bill depth and flipper length.
+
+```{r, fig.height=5}
+#| label: fig-5
+#| fig-cap: "Scatterplots for the numeric variables of the penguins dataset, coloring by species"
+
+# Figure 5 plotting
+
+ggpairs(df |> 
+select(species, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
+aes(color = species, alpha = 0.5),
+columns = 2:5) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+```
+
+Turning to sex, in @fig-6 we can now actually see the whole story of the multimodal distributions we saw earlier. There are clear clusters on the different characteristics, given by the species. For each cluster, we can see a clear differentiation between male and female characteristics. Thus, males and females are very distinguishable, but the species mask this fact. It is worth nothing that, even though correlations are negative by sex for some variables, the actual relationships are clearly positive. The negative correlations are drawn more by the cumulus observed in the species groupings, generating apparent "negatively sloped" relations. See, for instance, bill depth versus flipper length.
+
+```{r, fig.height=5}
+#| label: fig-6
+#| fig-cap: "Scatterplots for the numeric variables of the penguins dataset, coloring by sex"
+
+# Figure 6 plotting
+
+ggpairs(df |> 
+select(sex, bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
+aes(color = sex, alpha = 0.5),
+columns = 2:5) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+```
+
+# Analysis of `datasets::ChickWeight` dataset
+
+The second part consist of making an analysis similar to the previous one but for the `ChickWeight` dataset, analized in @crowder1990analysis. Below is an example of the top rows of the Chicks dataset. We have a chick indicator, time (living days of the chick), and type of diet.
+
+```{r}
+#| label: tbl-chicks
+#| tbl-cap: "Example rows of the Chicks dataset."
+
+# Table 2 = 
+
+df = datasets::ChickWeight
+kable(head(df))
+```
+
+## Exploratory data analysis
+
+As before, let us analyze how the numeric weight behaves relative to the diet, which is the main variable. This is, if there are significant differences observed in which weight relative to diet. Ww focus only on chicks with more than 10 days of life. There does not seem to be significant differences observed by diet, albeit the Diet 3 has the heaviest right tail, whereas Diet 1 seems to be generating the lightest chicks.
+
+```{r}
+#| label: fig-7
+#| fig-cap: "Weight of chicks by diet"
+
+# Figure 7 plotting
+
+vars = c("weight")
+
+plot_var = function(v){
+  ggplot(df |> 
+  filter(Time>10),
+         aes(x = .data[[v]], 
+             fill = Diet, 
+             color = Diet)) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 1, guides = "collect") & theme(legend.position = "top")
+  
+```
+
+Now, let us analyze differences by time. @fig-2 shows the same plot as before by days of living for chicks with more than 6 days. We can observe two things: greater weight, and greater variability through time, indicative of heteroscedasticity on weight behaviour.
+
+```{r}
+#| label: fig-8
+#| fig-cap: "Weight by time"
+
+# Figure 2 plotting
+
+plot_var = function(v){
+  ggplot(df |> 
+  filter(Time>6),
+         aes(x = .data[[v]], 
+             fill = factor(Time), 
+             color = factor(Time))) +
+    geom_histogram(aes(y = after_stat(density)), 
+                   bins = 30, 
+                   alpha = 0.25, 
+                   position = "identity") +
+    geom_density(linewidth = 0.8, 
+                 fill = NA) +
+    labs(title = gsub("_", " ", v), 
+         x = NULL, 
+         y = NULL) +
+    theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
+}
+
+plots = map(vars, plot_var)
+wrap_plots(plots, ncol = 1, guides = "collect") & theme(legend.position = "top")
+
+
+```
+
+## Relationships
+
+Let us know analyze potential relationships between the variables. Given the previous analysis, it might be worthwile analyzing how diets evolve through time. @fig-9 shows the evolution of weight through time by diet, with a LOESS regression and 95% confidence intervals. Unlike previous plots, we can now observe a "clear winner": Diet 3. Even though Diet 3 starts slow, producing chicks similar in weight to Diets 2 and 4, by day 22 it produces the heaviest chicks consistently, with the CIs between Diets 3 and 4 barely touching. On the other hand, Diet 1 produces the lightest chicks, as hinted in the histogram plots.
+
+```{r, fig.height=5}
+#| label: fig-9
+#| fig-cap: ""
+
+df |> 
+  ggplot(aes(x = Time,
+             y = weight,
+             color = Diet)
+         ) +
+  geom_point(alpha = 0.2) +
+  geom_smooth() +
+  theme_minimal(base_size = 12) +
+    theme(plot.title = element_text(face = "bold", hjust = 0),
+          panel.grid.minor = element_blank())
 ```
 
 # References
+
+
+
+
